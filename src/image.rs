@@ -1,5 +1,6 @@
 use crate::color::Color;
 use crate::pixel::Pixel;
+use crate::vec2::Vec2;
 use ::image::GenericImageView;
 use ::image::open;
 use ::image::{ImageBuffer, Rgba};
@@ -12,8 +13,15 @@ pub struct Image {
 }
 
 impl Image {
-    pub fn get_color_at(&self, x: i32, y: i32) -> Color {
-        self.colors[(y * self.width as i32 + x) as usize]
+    pub fn get_color_at(&self, pos: Vec2) -> Option<Color> {
+        if pos.x < 0 || pos.x >= self.width as i32 {
+            return None;
+        }
+        if pos.y < 0 || pos.y >= self.height as i32 {
+            return None;
+        }
+
+        Some(self.colors[(pos.y * self.width as i32 + pos.x) as usize])
     }
 
     pub fn set_pixel(&mut self, pixel: Pixel) {
