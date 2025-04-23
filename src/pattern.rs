@@ -1,7 +1,11 @@
 use crate::{color::Color, image::Image};
 
-pub type ColorsAndPatterns<T> = Vec<(Color, Vec<T>)>;
+#[derive(Debug)]
+pub struct ColorAndPatterns<T> {
+    pub color: Color,
+    pub patterns: Vec<T>,
+}
 
 pub trait Pattern: Sized {
-    fn extract(image: Image) -> ColorsAndPatterns<Self>;
+    fn extract(image: Image) -> Vec<ColorAndPatterns<Self>>;
 }

@@ -1,7 +1,7 @@
 use crate::{
     color::Color,
     image::Image,
-    pattern::{ColorsAndPatterns, Pattern},
+    pattern::{ColorAndPatterns, Pattern},
     vec2::Vec2,
 };
 
@@ -25,12 +25,13 @@ const DIRS: [Vec2; 8] = [
     Vec2 { x: 1, y: 1 },
 ];
 
+#[derive(Debug)]
 pub struct Pattern8 {
     colors: [Option<Color>; 8],
 }
 
 impl Pattern for Pattern8 {
-    fn extract(image: Image) -> ColorsAndPatterns<Pattern8> {
+    fn extract(image: Image) -> Vec<ColorAndPatterns<Pattern8>> {
         let mut colors_and_patterns = Vec::new();
 
         for y in 0..image.height as i32 {
@@ -43,8 +44,11 @@ impl Pattern for Pattern8 {
                 let pattern = extract_pattern_at(&image, Vec2 { x, y });
 
                 match color_index {
-                    Some(color_index) => colors_and_patterns[color_index].1.push(pattern),
-                    None => colors_and_patterns.push((color, vec![pattern])),
+                    Some(color_index) => colors_and_patterns[color_index].patterns.push(pattern),
+                    None => colors_and_patterns.push(ColorAndPatterns {
+                        color,
+                        patterns: vec![pattern],
+                    }),
                 }
             }
         }
@@ -53,9 +57,12 @@ impl Pattern for Pattern8 {
     }
 }
 
-fn get_color_index<T>(color: Color, colors_and_patterns: &ColorsAndPatterns<T>) -> Option<usize> {
+fn get_color_index<T>(
+    color: Color,
+    colors_and_patterns: &Vec<ColorAndPatterns<T>>,
+) -> Option<usize> {
     for i in 0..colors_and_patterns.len() {
-        let c = colors_and_patterns[i].0;
+        let c = colors_and_patterns[i].color;
         if c == color {
             return Some(i);
         }
@@ -75,4 +82,34 @@ fn extract_pattern_at(image: &Image, pos: Vec2) -> Pattern8 {
     }
 
     pattern
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn it_extracts_1_pattern_from_a_simple_image() {
+        let image = Image {
+            width: 2,
+            height: 2,
+            colors: vec![Color(0), Color(0), Color(0), Color(0)],
+        };
+
+        let colors_and_patterns = Pattern8::extract(image);
+
+        assert_eq!(colors_and_patterns.len(), 1);
+        assert_eq!(colors_and_patterns[0].color, Color(0));
+        assert_eq!(colors_and_patterns[0].patterns.len(), 4);
+        assert_eq!(
+            colors_and_patterns[0].patterns[0]
+                .colors
+                .iter()
+                .filter(|&opt| opt.is_none())
+                .count(),
+            5
+        );
+
+        println!("{:#?}", colors_and_patterns);
+    }
 }
