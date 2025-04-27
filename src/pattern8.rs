@@ -1,7 +1,7 @@
 use crate::{
     color::Color,
     image::Image,
-    pattern::{ColorAndPatterns, Pattern},
+    pattern::{ColorAndPatterns, ColorsAndPatterns, Pattern},
     vec2::Vec2,
 };
 
@@ -55,6 +55,29 @@ impl Pattern for Pattern8 {
 
         colors_and_patterns
     }
+
+    fn search(colors_and_patterns: &ColorsAndPatterns<Self>) -> usize {
+        let mut lowest_index = usize::MAX;
+        let mut lowest_entropy = f32::MAX;
+
+        for i in 0..colors_and_patterns.len() {
+            let color_and_patterns = &colors_and_patterns[i];
+
+            
+        }
+
+        lowest_index
+    }
+
+
+}
+
+fn calc_entropy<T>(color_and_patterns: &ColorAndPatterns<T>) -> f32{
+    let mut entropy = 0.0;
+
+
+
+    entropy
 }
 
 fn get_color_index<T>(
