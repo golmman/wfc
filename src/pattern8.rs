@@ -1,7 +1,8 @@
 use crate::{
     color::Color,
     image::Image,
-    pattern::{ColorAndPatterns, ColorsAndPatterns, Pattern},
+    pattern::Pattern,
+    superposition::{ColorSuperposition, ImageSuperposition, PixelSuperposition},
     vec2::Vec2,
 };
 
@@ -30,9 +31,15 @@ pub struct Pattern8 {
     colors: [Option<Color>; 8],
 }
 
-impl Pattern for Pattern8 {
-    fn extract(image: Image) -> Vec<ColorAndPatterns<Pattern8>> {
-        let mut colors_and_patterns = Vec::new();
+impl Pattern<8> for Pattern8 {
+    fn get_colors(&self) -> [Option<Color>; 8] {
+        todo!()
+    }
+
+    fn extract(image: Image) -> PixelSuperposition<8, Self> {
+        let mut pixel_sp = PixelSuperposition {
+            possible_colors: Vec::new(),
+        };
 
         for y in 0..image.height as i32 {
             for x in 0..image.width as i32 {
@@ -40,12 +47,14 @@ impl Pattern for Pattern8 {
                     .get_color_at(Vec2 { x, y })
                     .expect("image index not allowed");
 
-                let color_index = get_color_index(color, &colors_and_patterns);
+                let color_index = get_color_index(color, &pixel_sp);
                 let pattern = extract_pattern_at(&image, Vec2 { x, y });
 
                 match color_index {
-                    Some(color_index) => colors_and_patterns[color_index].patterns.push(pattern),
-                    None => colors_and_patterns.push(ColorAndPatterns {
+                    Some(color_index) => {
+                        pixel_sp.possible_colors[color_index].patterns.push(pattern)
+                    }
+                    None => pixel_sp.possible_colors.push(ColorSuperposition {
                         color,
                         patterns: vec![pattern],
                     }),
@@ -53,39 +62,33 @@ impl Pattern for Pattern8 {
             }
         }
 
-        colors_and_patterns
+        pixel_sp
     }
 
-    fn search(colors_and_patterns: &ColorsAndPatterns<Self>) -> usize {
+    fn search(image_sp: &ImageSuperposition<8, Self>) -> usize {
         let mut lowest_index = usize::MAX;
         let mut lowest_entropy = f32::MAX;
 
-        for i in 0..colors_and_patterns.len() {
-            let color_and_patterns = &colors_and_patterns[i];
-
-            
+        for i in 0..image_sp.pixels.len() {
+            //let color_and_patterns = &colors_and_patterns[i];
         }
 
         lowest_index
     }
-
-
 }
 
-fn calc_entropy<T>(color_and_patterns: &ColorAndPatterns<T>) -> f32{
+fn calc_entropy<T>() -> f32 {
     let mut entropy = 0.0;
-
-
 
     entropy
 }
 
-fn get_color_index<T>(
+fn get_color_index<const N: usize, T: Pattern<N>>(
     color: Color,
-    colors_and_patterns: &Vec<ColorAndPatterns<T>>,
+    pixel_sp: &PixelSuperposition<N, T>,
 ) -> Option<usize> {
-    for i in 0..colors_and_patterns.len() {
-        let c = colors_and_patterns[i].color;
+    for i in 0..pixel_sp.possible_colors.len() {
+        let c = pixel_sp.possible_colors[i].color;
         if c == color {
             return Some(i);
         }
@@ -119,13 +122,13 @@ mod test {
             colors: vec![Color(0), Color(0), Color(0), Color(0)],
         };
 
-        let colors_and_patterns = Pattern8::extract(image);
+        let pixel_sp = Pattern8::extract(image);
 
-        assert_eq!(colors_and_patterns.len(), 1);
-        assert_eq!(colors_and_patterns[0].color, Color(0));
-        assert_eq!(colors_and_patterns[0].patterns.len(), 4);
+        assert_eq!(pixel_sp.possible_colors.len(), 1);
+        assert_eq!(pixel_sp.possible_colors[0].color, Color(0));
+        assert_eq!(pixel_sp.possible_colors[0].patterns.len(), 4);
         assert_eq!(
-            colors_and_patterns[0].patterns[0]
+            pixel_sp.possible_colors[0].patterns[0]
                 .colors
                 .iter()
                 .filter(|&opt| opt.is_none())
@@ -133,6 +136,6 @@ mod test {
             5
         );
 
-        println!("{:#?}", colors_and_patterns);
+        println!("{:#?}", pixel_sp);
     }
 }

@@ -1,33 +1,25 @@
-use crate::color::Color;
+use crate::{color::Color, image::Image, pattern::Pattern};
 
+#[derive(Debug)]
 pub struct ImageSuperposition<const N: usize, T: Pattern<N>> {
-  pub width: u32,
-  pub height: u32,
-  pub pixels: Vec<PixelSuperposition<N, T>>,
+    pub width: u32,
+    pub height: u32,
+    pub pixels: Vec<PixelSuperposition<N, T>>,
 }
 
 // = ColorsAndPatterns
+#[derive(Debug)]
 pub struct PixelSuperposition<const N: usize, T: Pattern<N>> {
-  pub possible_colors: Vec<ColorSuperposition<N, T>>,
+    pub possible_colors: Vec<ColorSuperposition<N, T>>,
 }
 
 // = ColorAndPatterns
+#[derive(Debug)]
 pub struct ColorSuperposition<const N: usize, T: Pattern<N>> {
-  pub color: Color,
-  pub patterns: Vec<T>,
+    pub color: Color,
+    pub patterns: Vec<T>,
 }
 
 struct Pattern8 {
-  colors: [Option<Color>; 8],
+    colors: [Option<Color>; 8],
 }
-
-trait Pattern<const N: usize> {
-  fn get_colors(&self) -> [Option<Color>; N];
-}
-
-impl Pattern<8> for Pattern8 {
-    fn get_colors(&self) -> [Option<Color>; 8] {
-        todo!()
-    }
-}
-

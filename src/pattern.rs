@@ -1,16 +1,11 @@
-use crate::{color::Color, image::Image};
+use crate::{
+    color::Color,
+    image::Image,
+    superposition::{ImageSuperposition, PixelSuperposition},
+};
 
-
-
-#[derive(Debug)]
-pub struct ColorAndPatterns<T> {
-    pub color: Color,
-    pub patterns: Vec<T>,
-}
-
-pub type ColorsAndPatterns<T> = Vec<ColorAndPatterns<T>>;
-
-pub trait Pattern: Sized {
-    fn extract(image: Image) -> ColorsAndPatterns<Self>;
-    fn search(colors_and_patterns: &ColorsAndPatterns<Self>) -> usize;
+pub trait Pattern<const N: usize>: Sized {
+    fn get_colors(&self) -> [Option<Color>; N];
+    fn extract(image: Image) -> PixelSuperposition<N, Self>; // TODO: make this return ImageSuperposition
+    fn search(image_sp: &ImageSuperposition<N, Self>) -> usize;
 }
