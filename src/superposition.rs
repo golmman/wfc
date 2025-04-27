@@ -7,13 +7,11 @@ pub struct ImageSuperposition<const N: usize, T: Pattern<N>> {
     pub pixels: Vec<PixelSuperposition<N, T>>,
 }
 
-// = ColorsAndPatterns
 #[derive(Clone, Debug)]
 pub struct PixelSuperposition<const N: usize, T: Pattern<N>> {
-    pub possible_colors: Vec<ColorSuperposition<N, T>>,
+    pub colors: Vec<ColorSuperposition<N, T>>,
 }
 
-// = ColorAndPatterns
 #[derive(Clone, Debug)]
 pub struct ColorSuperposition<const N: usize, T: Pattern<N>> {
     pub color: Color,
