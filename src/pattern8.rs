@@ -26,7 +26,7 @@ const DIRS: [Vec2; 8] = [
     Vec2 { x: 1, y: 1 },
 ];
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Pattern8 {
     colors: [Option<Color>; 8],
 }
@@ -36,7 +36,7 @@ impl Pattern<8> for Pattern8 {
         todo!()
     }
 
-    fn extract(image: Image) -> PixelSuperposition<8, Self> {
+    fn extract(image: Image) -> ImageSuperposition<8, Self> {
         let mut pixel_sp = PixelSuperposition {
             possible_colors: Vec::new(),
         };
@@ -62,7 +62,11 @@ impl Pattern<8> for Pattern8 {
             }
         }
 
-        pixel_sp
+        ImageSuperposition {
+            width: image.width,
+            height: image.height,
+            pixels: vec![pixel_sp; (image.width * image.height) as usize],
+        }
     }
 
     fn search(image_sp: &ImageSuperposition<8, Self>) -> usize {
@@ -122,13 +126,14 @@ mod test {
             colors: vec![Color(0), Color(0), Color(0), Color(0)],
         };
 
-        let pixel_sp = Pattern8::extract(image);
+        let image_sp = Pattern8::extract(image);
 
-        assert_eq!(pixel_sp.possible_colors.len(), 1);
-        assert_eq!(pixel_sp.possible_colors[0].color, Color(0));
-        assert_eq!(pixel_sp.possible_colors[0].patterns.len(), 4);
+        assert_eq!(image_sp.pixels.len(), 4);
+        assert_eq!(image_sp.pixels[0].possible_colors.len(), 1);
+        assert_eq!(image_sp.pixels[0].possible_colors[0].color, Color(0));
+        assert_eq!(image_sp.pixels[0].possible_colors[0].patterns.len(), 4);
         assert_eq!(
-            pixel_sp.possible_colors[0].patterns[0]
+            image_sp.pixels[0].possible_colors[0].patterns[0]
                 .colors
                 .iter()
                 .filter(|&opt| opt.is_none())
@@ -136,6 +141,6 @@ mod test {
             5
         );
 
-        println!("{:#?}", pixel_sp);
+        println!("{:#?}", image_sp);
     }
 }
