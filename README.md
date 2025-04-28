@@ -1,41 +1,18 @@
 # wfc
 
-```json
-[// image
-  [ // pixel
-    { // first possible color
-      "color": 0,
-      "patterns": [
-        { colors: [0, 0, 0, 0, 0, 0, 0, 0] }
-      ]
-    }
-  ]
-]
-```
+## extract
 
+## search
+- lowest entropy
 
+## collapse
+- choose color randomly weighted
 
-```
-struct ImageSuperposition<T> {
-  width: u32,
-  height: u32,
-  pixels: Vev<PixelSuperposition>,
-}
+## propagate
+- on collapse put all neighbours on set
+- on narrow put all neighbours on set
+- wrap hashset
+- replace with linear search later
 
-struct PixelSuperposition {
-  possible_colors: Vec<ColorSuperposition>,
-}
-
-struct ColorSuperposition {
-  color: Color,
-  patterns: Vec<Pattern>,
-}
-
-struct Pattern8 {
-  colors: Vec<Color>,
-}
-
-trait Pattern<const N: usize> {
-  get_color(&self) -> [Color; N];
-}
-```
+## narrow
+- part of propagate?
