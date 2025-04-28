@@ -16,12 +16,13 @@ pub struct PixelSuperposition<const N: usize, T: Pattern<N>> {
 pub struct ColorSuperposition<const N: usize, T: Pattern<N>> {
     pub color: Color,
     pub patterns: Vec<T>,
+    pub weight: usize,
 }
 
 pub trait Wfc {
     fn extract(image: Image) -> Self;
     fn search(&self) -> usize;
-    fn collapse(&mut self) -> usize;
+    fn collapse(&mut self, pixel_index: usize);
 }
 
 impl Wfc for ImageSuperposition<8, Pattern8> {
@@ -38,10 +39,15 @@ impl Wfc for ImageSuperposition<8, Pattern8> {
                 let pattern = Pattern8::extract_pattern_at(&image, Vec2 { x, y });
 
                 match color_index {
-                    Some(color_index) => pixel_sp.colors[color_index].patterns.push(pattern),
+                    Some(color_index) => {
+                        pixel_sp.colors[color_index].patterns.push(pattern);
+                        pixel_sp.colors[color_index].weight =
+                            pixel_sp.colors[color_index].patterns.len();
+                    }
                     None => pixel_sp.colors.push(ColorSuperposition {
                         color,
                         patterns: vec![pattern],
+                        weight: 1,
                     }),
                 }
             }
@@ -55,33 +61,75 @@ impl Wfc for ImageSuperposition<8, Pattern8> {
     }
 
     fn search(&self) -> usize {
-        let mut lowest_index = usize::MAX;
-        let mut lowest_entropy = f32::MAX;
+        let mut min_index = 0;
+        let mut min_entropy = f32::MAX;
 
         for i in 0..self.pixels.len() {
             let pixel_sp = &self.pixels[i];
+            if is_collapsed(&pixel_sp) {
+                continue;
+            }
+
             let entropy = calc_entropy(pixel_sp);
 
-            if entropy < lowest_entropy {
-                lowest_entropy = entropy;
-                lowest_index = i;
+            if entropy < min_entropy {
+                min_entropy = entropy;
+                min_index = i;
             }
         }
 
-        lowest_index
+        min_index
     }
 
-    fn collapse(&mut self) -> usize {
-        0
+    fn collapse(&mut self, pixel_index: usize) {
+        let mut pixel_sp = &mut self.pixels[pixel_index];
+        let mut max_index: Option<usize> = None;
+        let mut max_weight = 0;
+
+        for i in 0..pixel_sp.colors.len() {
+            let color = &pixel_sp.colors[i];
+            if color.weight > max_weight {
+                max_weight = color.weight;
+                max_index = Some(i);
+            }
+        }
+
+        let i = max_index.expect("collapse is only possible if a color was chosen");
+        let color = &pixel_sp.colors[i];
+        pixel_sp = &mut PixelSuperposition {
+            colors: vec![color.clone()],
+        };
     }
 }
 
-fn calc_entropy<const N: usize, T: Pattern<N>>(pixel_sp: &PixelSuperposition<N, T>) -> f32 {
+// TODO: impl PixelSuperposition
+fn is_collapsed<const N: usize, T: Pattern<N>>(pixel_sp: &PixelSuperposition<N, T>) -> bool {
+    pixel_sp.colors.len() <= 1
+}
+
+// TODO: impl PixelSuperposition
+fn calc_weights<const N: usize, T: Pattern<N>>(pixel_sp: &PixelSuperposition<N, T>) -> usize {
     let mut total_weight = 0;
     for i in 0..pixel_sp.colors.len() {
         let color = &pixel_sp.colors[i];
         total_weight += color.patterns.len();
     }
+    total_weight
+}
+
+// TODO: impl PixelSuperposition
+fn calc_total_weight<const N: usize, T: Pattern<N>>(pixel_sp: &PixelSuperposition<N, T>) -> usize {
+    let mut total_weight = 0;
+    for i in 0..pixel_sp.colors.len() {
+        let color = &pixel_sp.colors[i];
+        total_weight += color.patterns.len();
+    }
+    total_weight
+}
+
+// TODO: impl PixelSuperposition
+fn calc_entropy<const N: usize, T: Pattern<N>>(pixel_sp: &PixelSuperposition<N, T>) -> f32 {
+    let mut total_weight = calc_total_weight(&pixel_sp);
 
     let mut entropy = 0.0;
     for i in 0..pixel_sp.colors.len() {
@@ -95,6 +143,7 @@ fn calc_entropy<const N: usize, T: Pattern<N>>(pixel_sp: &PixelSuperposition<N, 
     -entropy
 }
 
+// TODO: impl PixelSuperposition
 fn get_color_index<const N: usize, T: Pattern<N>>(
     color: Color,
     pixel_sp: &PixelSuperposition<N, T>,
