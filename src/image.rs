@@ -29,6 +29,7 @@ impl Image {
     }
 }
 
+// TODO: make part of impl
 pub fn load_image<T: AsRef<Path>>(path: T) -> Image {
     let img = open(path).unwrap();
     let (width, height) = img.dimensions();
@@ -55,6 +56,7 @@ pub fn load_image<T: AsRef<Path>>(path: T) -> Image {
     }
 }
 
+// TODO: make part of impl
 pub fn save_image<T: AsRef<Path>>(image: Image, path: T) {
     let mut img_buffer: ImageBuffer<Rgba<u8>, Vec<u8>> =
         ImageBuffer::new(image.width, image.height);
