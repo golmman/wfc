@@ -1,6 +1,9 @@
 use oorandom::Rand32;
 
-use crate::{color::Color, image::Image, pattern::Pattern, pattern8::Pattern8, vec2::Vec2};
+use crate::{
+    color::Color, image::Image, pattern::Pattern, pattern8::Pattern8, vec2::Vec2,
+    weighted::Weighted,
+};
 
 #[derive(Debug)]
 pub struct ImageSuperposition<const N: usize, T: Pattern<N>> {
@@ -29,6 +32,12 @@ pub trait Wfc {
     fn propagate(&mut self, pixel_index: usize);
 }
 
+impl<const N: usize, T: Pattern<N>> Weighted for PixelSuperposition<N, T> {
+    fn get_weight_at(&self, index: usize) -> Option<usize> {
+        self.colors.get(index).map(|x| x.weight)
+    }
+}
+
 impl<const N: usize, T: Pattern<N>> From<ImageSuperposition<N, T>> for Image {
     fn from(image_sp: ImageSuperposition<N, T>) -> Self {
         let mut colors = Vec::new();
@@ -48,6 +57,7 @@ impl<const N: usize, T: Pattern<N>> From<ImageSuperposition<N, T>> for Image {
 
 impl Wfc for ImageSuperposition<8, Pattern8> {
     fn extract(image: Image) -> Self {
+        // TODO: pixels at the borders have lower entropy: reduce possibilities
         let mut pixel_sp = PixelSuperposition { colors: Vec::new() };
 
         for y in 0..image.height as i32 {
@@ -117,6 +127,9 @@ impl Wfc for ImageSuperposition<8, Pattern8> {
         }
 
         let i = max_index.expect("collapse is only possible if a color was chosen");
+
+        let i = pixel_sp.get_random_index(&mut self.rng).expect("collapse is only possible if a color was chosen");
+
         let color = &pixel_sp.colors[i];
         self.pixels[pixel_index] = PixelSuperposition {
             colors: vec![color.clone()],
