@@ -6,6 +6,7 @@ use ::image::open;
 use ::image::{ImageBuffer, Rgba};
 use std::path::Path;
 
+#[derive(Clone)]
 pub struct Image {
     pub width: u32,
     pub height: u32,

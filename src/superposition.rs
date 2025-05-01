@@ -43,8 +43,12 @@ impl<const N: usize, T: Pattern<N>> From<ImageSuperposition<N, T>> for Image {
         let mut colors = Vec::new();
 
         for i in 0..image_sp.pixels.len() {
-            let color = image_sp.pixels[i].colors[0].color;
-            colors.push(color);
+            // TODO: remove fallback
+            if image_sp.pixels[i].colors.len() == 0 {
+                colors.push(Color(0));
+            } else {
+                colors.push(image_sp.pixels[i].colors[0].color);
+            }
         }
 
         Image {
@@ -88,7 +92,7 @@ impl Wfc for ImageSuperposition<8, Pattern8> {
             width: image.width,
             height: image.height,
             pixels: vec![pixel_sp; (image.width * image.height) as usize],
-            rng: Rand32::new(19870826),
+            rng: Rand32::new(198708261),
         }
     }
 
@@ -115,18 +119,6 @@ impl Wfc for ImageSuperposition<8, Pattern8> {
 
     fn collapse(&mut self, pixel_index: usize) {
         let pixel_sp = &self.pixels[pixel_index];
-        let mut max_index: Option<usize> = None;
-        let mut max_weight = 0;
-
-        for i in 0..pixel_sp.colors.len() {
-            let color = &pixel_sp.colors[i];
-            if color.weight > max_weight {
-                max_weight = color.weight;
-                max_index = Some(i);
-            }
-        }
-
-        let i = max_index.expect("collapse is only possible if a color was chosen");
 
         let i = pixel_sp
             .get_random_index(&mut self.rng)
@@ -139,10 +131,81 @@ impl Wfc for ImageSuperposition<8, Pattern8> {
     }
 
     fn propagate(&mut self, pixel_index: usize) {
-        let mut indices = StackSet::new(self.pixels.len());
+        let mut indices = StackSet::new(self.pixels.len()); // TODO: performance, make struct member?
         Pattern8::add_neighbors(&mut indices, pixel_index, self.width, self.height); // TODO: is reference to Pattern8 necessary?
 
-        //while let Some(pixel_index) = indices.get(…)
+        while let Some(pixel_index) = indices.pop() {
+            if !self.is_collapsed_at(pixel_index) {
+                self.collapse_partially(pixel_index);
+                if self.is_collapsed_at(pixel_index) {
+                    Pattern8::add_neighbors(&mut indices, pixel_index, self.width, self.height); // TODO: is reference to Pattern8 necessary?
+                }
+            }
+        }
+    }
+}
+
+impl<const N: usize, T: Pattern<N>> ImageSuperposition<N, T> {
+    fn is_collapsed_at(&self, pixel_index: usize) -> bool {
+        let pixel_sp = &self.pixels[pixel_index];
+        is_collapsed(pixel_sp)
+    }
+
+    fn get_collapsed_color_at(&self, pixel_index: usize) -> Option<Color> {
+        let pixel_sp = &self.pixels[pixel_index];
+        if is_collapsed(pixel_sp) {
+            // TODO: this is bad
+            if pixel_sp.colors.len() == 0 {
+                Some(Color(0))
+            } else {
+                Some(pixel_sp.colors[0].color)
+            }
+        } else {
+            None
+        }
+    }
+
+    fn collapse_partially(&mut self, pixel_index: usize) {
+        // TODO: better collapse: also take into account non fully collapsed pixels
+
+        // build new colors for the current pixel
+        let mut new_colors = Vec::new();
+        for k in 0..self.pixels[pixel_index].colors.len() {
+
+            // build new patterns for current color
+            let mut new_patterns = Vec::new();
+            for j in 0..self.pixels[pixel_index].colors[k].patterns.len() {
+                let pattern = &self.pixels[pixel_index].colors[k].patterns[j];
+                let neighbors_and_colors =
+                    pattern.get_neighbors_and_colors(pixel_index, self.width, self.height);
+
+                // TODO: outsource
+                let mut pattern_conforms = true;
+                for i in 0..neighbors_and_colors.len() {
+                    let (neighbor_index, pattern_color) = neighbors_and_colors[i];
+                    if let Some(neighbor_color) = self.get_collapsed_color_at(neighbor_index) {
+                        if neighbor_color != pattern_color {
+                            pattern_conforms = false;
+                            break;
+                        }
+                    }
+                }
+
+                if pattern_conforms {
+                    new_patterns.push(pattern.clone());
+                }
+            }
+
+            if new_patterns.len() > 0 {
+                new_colors.push(ColorSuperposition {
+                    color: self.pixels[pixel_index].colors[k].color,
+                    patterns: new_patterns,
+                    weight: self.pixels[pixel_index].colors[k].weight,
+                });
+            }
+        }
+
+        self.pixels[pixel_index].colors = new_colors;
     }
 }
 

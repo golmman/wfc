@@ -26,7 +26,7 @@ impl Vec2 {
     }
 
     pub fn into_index(&self, width: u32) -> usize {
-        (width as i32 * self.y + self.y) as usize
+        (width as i32 * self.y + self.x) as usize
     }
 
     pub fn is_inside(&self, width: u32, height: u32) -> bool {

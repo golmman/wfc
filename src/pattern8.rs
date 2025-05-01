@@ -63,4 +63,45 @@ impl Pattern<PATTERN_SIZE> for Pattern8 {
             }
         }
     }
+
+    fn get_neighbors(index: usize, width: u32, height: u32) -> Vec<usize> {
+        // TODO: merge with add_neighbors?
+        let mut neighbors = Vec::new();
+
+        let pos = Vec2::from_index(index, width);
+        for i in 0..DIRS.len() {
+            let dir = DIRS[i];
+            let p = pos + dir;
+
+            if p.is_inside(width, height) {
+                neighbors.push(p.into_index(width));
+            }
+        }
+
+        neighbors
+    }
+
+    fn get_neighbors_and_colors(
+        &self,
+        index: usize,
+        width: u32,
+        height: u32,
+    ) -> Vec<(usize, Color)> {
+        let mut neighbors_and_colors = Vec::new();
+
+        let pos = Vec2::from_index(index, width);
+        for i in 0..DIRS.len() {
+            let dir = DIRS[i];
+            let p = pos + dir;
+
+            if p.is_inside(width, height) {
+                if let Some(color) = self.colors[i] {
+                    let neighbor = p.into_index(width);
+                    neighbors_and_colors.push((neighbor, color));
+                }
+            }
+        }
+
+        neighbors_and_colors
+    }
 }
