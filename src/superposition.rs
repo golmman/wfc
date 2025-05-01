@@ -1,8 +1,8 @@
 use oorandom::Rand32;
 
 use crate::{
-    color::Color, image::Image, pattern::Pattern, pattern8::Pattern8, vec2::Vec2,
-    weighted::Weighted,
+    color::Color, image::Image, pattern::Pattern, pattern8::Pattern8, stack_set::StackSet,
+    vec2::Vec2, weighted::Weighted,
 };
 
 #[derive(Debug)]
@@ -128,7 +128,9 @@ impl Wfc for ImageSuperposition<8, Pattern8> {
 
         let i = max_index.expect("collapse is only possible if a color was chosen");
 
-        let i = pixel_sp.get_random_index(&mut self.rng).expect("collapse is only possible if a color was chosen");
+        let i = pixel_sp
+            .get_random_index(&mut self.rng)
+            .expect("collapse is only possible if a color was chosen");
 
         let color = &pixel_sp.colors[i];
         self.pixels[pixel_index] = PixelSuperposition {
@@ -136,7 +138,12 @@ impl Wfc for ImageSuperposition<8, Pattern8> {
         };
     }
 
-    fn propagate(&mut self, pixel_index: usize) {}
+    fn propagate(&mut self, pixel_index: usize) {
+        let mut indices = StackSet::new(self.pixels.len());
+        Pattern8::add_neighbors(&mut indices, pixel_index, self.width, self.height); // TODO: is reference to Pattern8 necessary?
+
+        //while let Some(pixel_index) = indices.get(…)
+    }
 }
 
 // TODO: impl PixelSuperposition
@@ -166,7 +173,7 @@ fn calc_total_weight<const N: usize, T: Pattern<N>>(pixel_sp: &PixelSuperpositio
 
 // TODO: impl PixelSuperposition
 fn calc_entropy<const N: usize, T: Pattern<N>>(pixel_sp: &PixelSuperposition<N, T>) -> f32 {
-    let mut total_weight = calc_total_weight(&pixel_sp);
+    let total_weight = calc_total_weight(&pixel_sp);
 
     let mut entropy = 0.0;
     for i in 0..pixel_sp.colors.len() {

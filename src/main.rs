@@ -11,6 +11,7 @@ pub mod pattern;
 pub mod pattern8;
 pub mod pixel;
 pub mod superposition;
+pub mod stack_set;
 pub mod vec2;
 pub mod weighted;
 

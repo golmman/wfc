@@ -1,10 +1,4 @@
-use crate::{
-    color::Color,
-    image::Image,
-    pattern::Pattern,
-    superposition::{ColorSuperposition, ImageSuperposition, PixelSuperposition},
-    vec2::Vec2,
-};
+use crate::{color::Color, image::Image, pattern::Pattern, stack_set::StackSet, vec2::Vec2};
 
 pub const NW: usize = 0;
 pub const N: usize = 1;
@@ -55,6 +49,18 @@ impl Pattern<PATTERN_SIZE> for Pattern8 {
     fn empty() -> Self {
         Pattern8 {
             colors: [None; PATTERN_SIZE],
+        }
+    }
+
+    fn add_neighbors(indices: &mut StackSet, index: usize, width: u32, height: u32) {
+        let pos = Vec2::from_index(index, width);
+        for i in 0..DIRS.len() {
+            let dir = DIRS[i];
+            let p = pos + dir;
+
+            if p.is_inside(width, height) {
+                indices.push(p.into_index(width));
+            }
         }
     }
 }
