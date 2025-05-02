@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use oorandom::Rand32;
 
 use crate::{
@@ -26,7 +28,7 @@ pub struct ColorSuperposition<const N: usize, T: Pattern<N>> {
 }
 
 pub trait Wfc {
-    fn extract(image: Image) -> Self;
+    fn extract(&mut self, image: Image);
     fn search(&self) -> Option<usize>;
     fn collapse(&mut self, pixel_index: usize);
     fn propagate(&mut self, pixel_index: usize);
@@ -38,18 +40,24 @@ impl<const N: usize, T: Pattern<N>> Weighted for PixelSuperposition<N, T> {
     }
 }
 
-impl<const N: usize, T: Pattern<N>> From<ImageSuperposition<N, T>> for Image {
-    fn from(image_sp: ImageSuperposition<N, T>) -> Self {
+impl<const N: usize, T: Pattern<N>> From<&ImageSuperposition<N, T>> for Image {
+    fn from(image_sp: &ImageSuperposition<N, T>) -> Self {
         let mut colors = Vec::new();
 
+        let mut wrong_pixels = 0;
         for i in 0..image_sp.pixels.len() {
             // TODO: remove fallback
             if image_sp.pixels[i].colors.len() == 0 {
-                colors.push(Color(0));
+                colors.push(Color(0xff000000));
+                wrong_pixels += 1;
+            } else if image_sp.pixels[i].colors.len() > 1 {
+                colors.push(Color(0xffff0000));
             } else {
                 colors.push(image_sp.pixels[i].colors[0].color);
             }
         }
+
+        println!("save image, dead pixels: {}", wrong_pixels);
 
         Image {
             width: image_sp.width,
@@ -60,7 +68,7 @@ impl<const N: usize, T: Pattern<N>> From<ImageSuperposition<N, T>> for Image {
 }
 
 impl Wfc for ImageSuperposition<8, Pattern8> {
-    fn extract(image: Image) -> Self {
+    fn extract(&mut self, image: Image) {
         // TODO: pixels at the borders have lower entropy: reduce possibilities
         let mut pixel_sp = PixelSuperposition { colors: Vec::new() };
 
@@ -88,12 +96,14 @@ impl Wfc for ImageSuperposition<8, Pattern8> {
             }
         }
 
-        ImageSuperposition {
-            width: image.width,
-            height: image.height,
-            pixels: vec![pixel_sp; (image.width * image.height) as usize],
-            rng: Rand32::new(198708261),
-        }
+        self.pixels = vec![pixel_sp; (self.width * self.height) as usize];
+
+        //ImageSuperposition {
+        //    width: image.width,
+        //    height: image.height,
+        //    pixels: vec![pixel_sp; (image.width * image.height) as usize],
+        //    rng: Rand32::new(1987082611),
+        //}
     }
 
     fn search(&self) -> Option<usize> {
@@ -118,6 +128,8 @@ impl Wfc for ImageSuperposition<8, Pattern8> {
     }
 
     fn collapse(&mut self, pixel_index: usize) {
+        println!("collapse at: {:?}", Vec2::from_index(pixel_index, self.width));
+        //println!("  `-> {:?}", self.pixels[pixel_index]);
         let pixel_sp = &self.pixels[pixel_index];
 
         let i = pixel_sp
@@ -134,18 +146,47 @@ impl Wfc for ImageSuperposition<8, Pattern8> {
         let mut indices = StackSet::new(self.pixels.len()); // TODO: performance, make struct member?
         Pattern8::add_neighbors(&mut indices, pixel_index, self.width, self.height); // TODO: is reference to Pattern8 necessary?
 
+        let mut x = 0;
+        let mut y = 0;
+        let mut z = 0;
         while let Some(pixel_index) = indices.pop() {
+            x += 1;
             if !self.is_collapsed_at(pixel_index) {
-                self.collapse_partially(pixel_index);
-                if self.is_collapsed_at(pixel_index) {
+
+                // TODO: integrate into collapse_partially?
+                y += 1;
+                if self.collapse_partially(pixel_index) {
+                    z += 1;
                     Pattern8::add_neighbors(&mut indices, pixel_index, self.width, self.height); // TODO: is reference to Pattern8 necessary?
                 }
+
+                //println!("propagate at: {:?}, full: {}", Vec2::from_index(pixel_index, self.width), self.is_collapsed_at(pixel_index));
             }
         }
+        //println!(
+        //    "index: {}, total: {}, partials: {}, fulls: {}",
+        //    pixel_index, x, y, z
+        //);
     }
 }
 
 impl<const N: usize, T: Pattern<N>> ImageSuperposition<N, T> {
+    pub fn new(width: u32, height: u32) -> Self {
+        let millis: u64 = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis() as u64;
+        //let millis = 1746187755003;
+        println!("seed: {}", millis);
+        Self {
+            width,
+            height,
+            pixels: Vec::new(),
+            //rng: Rand32::new(1987082627),
+            rng: Rand32::new(millis),
+        }
+    }
+
     fn is_collapsed_at(&self, pixel_index: usize) -> bool {
         let pixel_sp = &self.pixels[pixel_index];
         is_collapsed(pixel_sp)
@@ -165,12 +206,47 @@ impl<const N: usize, T: Pattern<N>> ImageSuperposition<N, T> {
         }
     }
 
-    fn collapse_partially(&mut self, pixel_index: usize) {
+    //fn get_colors_at(&self, pixel_index: usize) -> &Vec<Color> {
+    //    &self.pixels[pixel_index].colors.
+    //}
+
+    fn collapse_partially(&mut self, pixel_index: usize) -> bool {
         // TODO: better collapse: also take into account non fully collapsed pixels
+
+        let mut has_changed = false;
 
         // build new colors for the current pixel
         let mut new_colors = Vec::new();
         for k in 0..self.pixels[pixel_index].colors.len() {
+            let color1 = self.pixels[pixel_index].colors[k].color; // TODO: rename, without naming collision...
+
+            // check if current color is even possible by all surrounding patterns and skip if not
+            let neighbors = Pattern8::get_neighbors_opt(pixel_index, self.width, self.height);
+            let mut skip_color = false;
+            assert!(neighbors.len() == 8);
+            for r in 0..neighbors.len() {
+                if let Some(neighbor_index) = neighbors[r] {
+                    let mut color_set = HashSet::new();
+                    for s in 0..self.pixels[neighbor_index].colors.len() {
+                        for t in 0..self.pixels[neighbor_index].colors[s].patterns.len() {
+                            let pattern = &self.pixels[neighbor_index].colors[s].patterns[t];
+                            if let Some(color_reverse) = pattern.get_color_at(7 - r) {
+                                // TODO: 7?
+                                color_set.insert(color_reverse);
+                            }
+                        }
+                    }
+
+                    if !color_set.contains(&color1) {
+                        skip_color = true;
+                        break;
+                    }
+                }
+            }
+            if skip_color {
+                has_changed = true;
+                continue;
+            }
 
             // build new patterns for current color
             let mut new_patterns = Vec::new();
@@ -183,16 +259,53 @@ impl<const N: usize, T: Pattern<N>> ImageSuperposition<N, T> {
                 let mut pattern_conforms = true;
                 for i in 0..neighbors_and_colors.len() {
                     let (neighbor_index, pattern_color) = neighbors_and_colors[i];
-                    if let Some(neighbor_color) = self.get_collapsed_color_at(neighbor_index) {
-                        if neighbor_color != pattern_color {
-                            pattern_conforms = false;
+
+                    if neighbor_index.is_none() && pattern_color.is_none() {
+                        continue;
+                    }
+
+                    if neighbor_index.is_none() && pattern_color.is_some() {
+                        pattern_conforms = false;
+                        break;
+                    }
+
+                    if neighbor_index.is_some() && pattern_color.is_none() {
+                        pattern_conforms = false;
+                        break;
+                    }
+
+                    // TODO: replace by: get all possible colors there, get all possible pattern colors here ..
+                    // for each pattern position (8-neighborhood)
+                    //   get list of possible colors there (other pixel)
+                    //   keep only those patterns, that conform
+                    //if let Some(neighbor_color) =
+                    //    self.get_collapsed_color_at(neighbor_index.unwrap())
+                    //{
+                    //    if Some(neighbor_color) != pattern_color {
+                    //        pattern_conforms = false;
+                    //        break;
+                    //    }
+                    //}
+
+                    // note that both options are "Some" at this point
+                    let mut is_any_match = false;
+                    for ci in 0..self.pixels[neighbor_index.unwrap()].colors.len() {
+                        let color = self.pixels[neighbor_index.unwrap()].colors[ci].color;
+                        if color == pattern_color.unwrap() {
+                            is_any_match = true;
                             break;
                         }
+                    }
+                    if !is_any_match {
+                        pattern_conforms = false;
+                        break;
                     }
                 }
 
                 if pattern_conforms {
                     new_patterns.push(pattern.clone());
+                } else {
+                    has_changed = true
                 }
             }
 
@@ -206,6 +319,8 @@ impl<const N: usize, T: Pattern<N>> ImageSuperposition<N, T> {
         }
 
         self.pixels[pixel_index].colors = new_colors;
+
+        has_changed
     }
 }
 
