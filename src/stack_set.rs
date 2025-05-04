@@ -11,6 +11,18 @@ impl StackSet {
         }
     }
 
+    pub fn full(max_len: usize) -> Self {
+        let mut stack = Vec::new();
+        for i in 0..max_len {
+            stack.push(i);
+        }
+
+        Self {
+            occupied: vec![true; max_len],
+            stack,
+        }
+    }
+
     pub fn push(&mut self, value: usize) {
         if !self.occupied[value] {
             self.occupied[value] = true;

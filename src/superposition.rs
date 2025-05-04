@@ -128,17 +128,25 @@ impl Wfc for ImageSuperposition<8, Pattern8> {
     }
 
     fn collapse(&mut self, pixel_index: usize) {
-        println!("collapse at: {:?}", Vec2::from_index(pixel_index, self.width));
+        println!(
+            "collapse at: {:?}",
+            Vec2::from_index(pixel_index, self.width)
+        );
         //println!("  `-> {:?}", self.pixels[pixel_index]);
-        let pixel_sp = &self.pixels[pixel_index];
+        //let pixel_sp = &self.pixels[pixel_index];
 
-        let i = pixel_sp
+        // TODO: improve or remove?
+        for i in 0..self.pixels[pixel_index].colors.len() {
+            self.pixels[pixel_index].colors[i].weight = self.pixels[pixel_index].colors[i].patterns.len();
+        }
+
+        let i = self.pixels[pixel_index]
             .get_random_index(&mut self.rng)
             .expect("collapse is only possible if a color was chosen");
 
-        let color = &pixel_sp.colors[i];
+        //let color = &pixel_sp.colors[i];
         self.pixels[pixel_index] = PixelSuperposition {
-            colors: vec![color.clone()],
+            colors: vec![self.pixels[pixel_index].colors[i].clone()],
         };
     }
 
@@ -152,8 +160,6 @@ impl Wfc for ImageSuperposition<8, Pattern8> {
         while let Some(pixel_index) = indices.pop() {
             x += 1;
             if !self.is_collapsed_at(pixel_index) {
-
-                // TODO: integrate into collapse_partially?
                 y += 1;
                 if self.collapse_partially(pixel_index) {
                     z += 1;
@@ -171,12 +177,24 @@ impl Wfc for ImageSuperposition<8, Pattern8> {
 }
 
 impl<const N: usize, T: Pattern<N>> ImageSuperposition<N, T> {
+    // TODO: DRY
+    pub fn propagate_all(&mut self) {
+        let mut indices = StackSet::full(self.pixels.len());
+        while let Some(pixel_index) = indices.pop() {
+            if !self.is_collapsed_at(pixel_index) {
+                if self.collapse_partially(pixel_index) {
+                    Pattern8::add_neighbors(&mut indices, pixel_index, self.width, self.height); // TODO: is reference to Pattern8 necessary?
+                }
+            }
+        }
+    }
+
     pub fn new(width: u32, height: u32) -> Self {
         let millis: u64 = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_millis() as u64;
-        //let millis = 1746187755003;
+        let millis = 1746367627610;
         println!("seed: {}", millis);
         Self {
             width,

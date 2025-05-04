@@ -23,11 +23,13 @@ fn main() {
     let image = load_image("./test/flowers.png");
     let image2 = image.clone();
 
-    let mut image_sp = ImageSuperposition::<8, Pattern8>::new(10, 10);
+    let mut image_sp = ImageSuperposition::<8, Pattern8>::new(15, 24);
     image_sp.extract(image);
 
     // TODO: remove
     //collapse_corners(image2, &mut image_sp);
+    image_sp.propagate_all();
+    save_image(Image::from(&image_sp), format!("./test/out-before-collapse.png"));
 
     let mut n = 0;
     while let Some(pixel_index) = image_sp.search() {

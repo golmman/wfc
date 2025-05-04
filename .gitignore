@@ -14,3 +14,4 @@ target/
 
 ## test files
 test/out.png
+test/out*.png
