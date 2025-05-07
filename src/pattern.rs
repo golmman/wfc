@@ -8,6 +8,5 @@ pub trait Pattern<const N: usize>: Sized + Clone {
     fn get_color_at(&self, index: usize) -> Option<Color>;
     fn get_neighbors(index: usize, width: u32, height: u32) -> Vec<usize>;
     fn get_neighbors_opt(index: usize, width: u32, height: u32) -> Vec<Option<usize>>;
-    fn get_neighbors_and_reverse_indices(index: usize, width: u32, height: u32) -> Vec<usize>;
     fn get_neighbors_and_colors(&self, index: usize, width: u32, height: u32) -> Vec<(Option<usize>, Option<Color>)>;
 }

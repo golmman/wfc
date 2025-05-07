@@ -55,7 +55,7 @@ mod test {
         let mut ones = 0;
         let mut twos = 0;
         let mut sevens = 0;
-        for i in 0..10000 {
+        for _i in 0..10000 {
             let w = weighted.get_random_index(&mut rng);
             match w {
                 Some(0) => ones += 1,

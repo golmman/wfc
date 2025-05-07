@@ -1,9 +1,4 @@
-use crate::{
-    color::Color,
-    pattern::Pattern,
-    superposition::{ColorSuperposition, ImageSuperposition},
-    vec2::Vec2,
-};
+use crate::{pattern::Pattern, superposition::ImageSuperposition};
 
 pub struct Snapshot<const N: usize, T: Pattern<N>> {
     pub image_sp: ImageSuperposition<N, T>,

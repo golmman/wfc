@@ -119,25 +119,6 @@ impl Pattern<PATTERN_SIZE> for Pattern8 {
         neighbors
     }
 
-    /// reverse dirs for get_color_at
-    fn get_neighbors_and_reverse_indices(index: usize, width: u32, height: u32) -> Vec<usize> {
-        todo!();
-        // TODO: merge with add_neighbors?
-        let mut neighbors = Vec::new();
-
-        let pos = Vec2::from_index(index, width);
-        for i in 0..DIRS.len() {
-            let dir = DIRS[i];
-            let p = pos + dir;
-
-            if p.is_inside(width, height) {
-                neighbors.push(p.into_index(width));
-            }
-        }
-
-        neighbors
-    }
-
     fn get_neighbors_and_colors(
         &self,
         index: usize,

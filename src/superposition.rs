@@ -137,7 +137,8 @@ impl Wfc for ImageSuperposition<8, Pattern8> {
 
         // TODO: improve or remove?
         for i in 0..self.pixels[pixel_index].colors.len() {
-            self.pixels[pixel_index].colors[i].weight = self.pixels[pixel_index].colors[i].patterns.len();
+            self.pixels[pixel_index].colors[i].weight =
+                self.pixels[pixel_index].colors[i].patterns.len();
         }
 
         let color_index = self.pixels[pixel_index]
@@ -156,9 +157,6 @@ impl Wfc for ImageSuperposition<8, Pattern8> {
         let mut indices = StackSet::new(self.pixels.len()); // TODO: performance, make struct member?
         Pattern8::add_neighbors(&mut indices, pixel_index, self.width, self.height); // TODO: is reference to Pattern8 necessary?
 
-        let mut x = 0;
-        let mut y = 0;
-        let mut z = 0;
         while let Some(pixel_index) = indices.pop() {
             if !self.is_collapsed_at(pixel_index) {
                 if self.collapse_partially(pixel_index) {
@@ -407,7 +405,9 @@ mod test {
             colors: vec![Color(0), Color(0), Color(0), Color(0)],
         };
 
-        let image_sp = ImageSuperposition::extract(image);
+        let mut image_sp = ImageSuperposition::<8, Pattern8>::new(2, 2);
+
+        image_sp.extract(image);
 
         assert_eq!(image_sp.pixels.len(), 4);
         assert_eq!(image_sp.pixels[0].colors.len(), 1);

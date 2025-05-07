@@ -1,13 +1,10 @@
-use color::Color;
 use image::Image;
 use image::load_image;
 use image::save_image;
 use pattern8::Pattern8;
 use snapshot::Snapshot;
 use snapshot::SnapshotStack;
-use superposition::ColorSuperposition;
 use superposition::ImageSuperposition;
-use superposition::PixelSuperposition;
 use superposition::Wfc;
 
 pub mod color;
@@ -36,10 +33,11 @@ fn main() {
         format!("./test/out-before-collapse.png"),
     );
 
-    let mut n = 0;
+    // TODO: debug
+    //let mut n = 0;
     while let Some(pixel_index) = image_sp.search() {
         //save_image(Image::from(&image_sp), format!("./test/out{}.png", n));
-        n += 1;
+        //n += 1;
 
         let image_sp_clone = image_sp.clone();
 
