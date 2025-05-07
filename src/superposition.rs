@@ -7,7 +7,7 @@ use crate::{
     vec2::Vec2, weighted::Weighted,
 };
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ImageSuperposition<const N: usize, T: Pattern<N>> {
     pub width: u32,
     pub height: u32,
@@ -30,8 +30,8 @@ pub struct ColorSuperposition<const N: usize, T: Pattern<N>> {
 pub trait Wfc {
     fn extract(&mut self, image: Image);
     fn search(&self) -> Option<usize>;
-    fn collapse(&mut self, pixel_index: usize);
-    fn propagate(&mut self, pixel_index: usize);
+    fn collapse(&mut self, pixel_index: usize) -> usize;
+    fn propagate(&mut self, pixel_index: usize) -> bool;
 }
 
 impl<const N: usize, T: Pattern<N>> Weighted for PixelSuperposition<N, T> {
@@ -127,7 +127,7 @@ impl Wfc for ImageSuperposition<8, Pattern8> {
         min_index
     }
 
-    fn collapse(&mut self, pixel_index: usize) {
+    fn collapse(&mut self, pixel_index: usize) -> usize {
         println!(
             "collapse at: {:?}",
             Vec2::from_index(pixel_index, self.width)
@@ -140,17 +140,19 @@ impl Wfc for ImageSuperposition<8, Pattern8> {
             self.pixels[pixel_index].colors[i].weight = self.pixels[pixel_index].colors[i].patterns.len();
         }
 
-        let i = self.pixels[pixel_index]
+        let color_index = self.pixels[pixel_index]
             .get_random_index(&mut self.rng)
             .expect("collapse is only possible if a color was chosen");
 
         //let color = &pixel_sp.colors[i];
         self.pixels[pixel_index] = PixelSuperposition {
-            colors: vec![self.pixels[pixel_index].colors[i].clone()],
+            colors: vec![self.pixels[pixel_index].colors[color_index].clone()],
         };
+
+        color_index
     }
 
-    fn propagate(&mut self, pixel_index: usize) {
+    fn propagate(&mut self, pixel_index: usize) -> bool {
         let mut indices = StackSet::new(self.pixels.len()); // TODO: performance, make struct member?
         Pattern8::add_neighbors(&mut indices, pixel_index, self.width, self.height); // TODO: is reference to Pattern8 necessary?
 
@@ -158,21 +160,17 @@ impl Wfc for ImageSuperposition<8, Pattern8> {
         let mut y = 0;
         let mut z = 0;
         while let Some(pixel_index) = indices.pop() {
-            x += 1;
             if !self.is_collapsed_at(pixel_index) {
-                y += 1;
                 if self.collapse_partially(pixel_index) {
-                    z += 1;
+                    if self.pixels[pixel_index].colors.len() == 0 {
+                        return false;
+                    }
                     Pattern8::add_neighbors(&mut indices, pixel_index, self.width, self.height); // TODO: is reference to Pattern8 necessary?
                 }
-
-                //println!("propagate at: {:?}, full: {}", Vec2::from_index(pixel_index, self.width), self.is_collapsed_at(pixel_index));
             }
         }
-        //println!(
-        //    "index: {}, total: {}, partials: {}, fulls: {}",
-        //    pixel_index, x, y, z
-        //);
+
+        true
     }
 }
 
@@ -194,7 +192,7 @@ impl<const N: usize, T: Pattern<N>> ImageSuperposition<N, T> {
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_millis() as u64;
-        let millis = 1746367627610;
+        //let millis = 1746367627610;
         println!("seed: {}", millis);
         Self {
             width,
