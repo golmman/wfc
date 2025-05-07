@@ -25,7 +25,7 @@ fn main() {
     println!("Hello, world!");
 
     let mut snapshot_stack = SnapshotStack::<8, Pattern8>::new();
-    let image = load_image("./test/Spirals.png");
+    let image = load_image("./test/Water.png");
 
     let mut image_sp = ImageSuperposition::<8, Pattern8>::new(50, 50);
     image_sp.extract(image);

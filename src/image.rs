@@ -4,6 +4,7 @@ use crate::vec2::Vec2;
 use ::image::GenericImageView;
 use ::image::open;
 use ::image::{ImageBuffer, Rgba};
+use image::DynamicImage;
 use std::path::Path;
 
 #[derive(Clone)]
@@ -32,7 +33,9 @@ impl Image {
 
 // TODO: make part of impl
 pub fn load_image<T: AsRef<Path>>(path: T) -> Image {
-    let img = open(path).unwrap();
+    let img = open(path).unwrap().into_rgba8();
+    let img = DynamicImage::ImageRgba8(img);
+
     let (width, height) = img.dimensions();
     let bytes = img.into_bytes();
 
